@@ -1,9 +1,93 @@
 import sys
 
 import pygame
-
+import socket
 # 要显示的窗口的宽、高
 WIDTH, HEIGHT = 750, 667
+
+MESSAGE_HEADER_SIZE = 4  # 消息头部的字节数
+
+class MessageType:
+    JOIN = 1  # 加入游戏
+    START = 2  # 开始游戏
+    MOVE = 3  # 落子
+    END = 4  # 结束游戏
+    ERROR = 5  # 错误消息
+
+def pack_message(message_type, body):
+    header = len(body).to_bytes(MESSAGE_HEADER_SIZE, byteorder='big') + message_type.to_bytes(1, byteorder='big')
+    return header + body
+
+def unpack_message(message):
+    header = message[:MESSAGE_HEADER_SIZE]
+    body = message[MESSAGE_HEADER_SIZE:]
+    message_type = header[MESSAGE_HEADER_SIZE - 1]
+    return message_type, body
+
+
+class JoinMessage:
+    def __init__(self, player_name):
+        self.player_name = player_name
+
+    def pack(self):
+        body = self.player_name.encode('utf-8')
+        return pack_message(MessageType.JOIN, body)
+
+    @staticmethod
+    def unpack(message_body):
+        player_name = message_body.decode('utf-8')
+        return JoinMessage(player_name)
+
+class StartMessage:
+    def pack(self):
+        return pack_message(MessageType.START, b'')
+
+    @staticmethod
+    def unpack(message_body):
+        return StartMessage()
+
+
+class MoveMessage:
+    def __init__(self, src, dest):
+        self.src = src
+        self.dest = dest
+
+    def pack(self):
+        body = struct.pack('!II', self.src, self.dest)
+        return pack_message(MessageType.MOVE, body)
+
+    @staticmethod
+    def unpack(message_body):
+        src, dest = struct.unpack('!II', message_body)
+        return MoveMessage(src, dest)
+
+
+class EndMessage:
+    def __init__(self, winner):
+        self.winner = winner
+
+    def pack(self):
+        body = self.winner.encode('utf-8')
+        return pack_message(MessageType.END, body)
+
+    @staticmethod
+    def unpack(message_body):
+        winner = message_body.decode('utf-8')
+        return EndMessage(winner)
+
+
+class ErrorMessage:
+    def __init__(self, message):
+        self.message = message
+
+    def pack(self):
+        body = self.message.encode('utf-8')
+        return pack_message(MessageType.ERROR, body)
+
+    @staticmethod
+    def unpack(message_body):
+        message = message_body.decode('utf-8')
+        return ErrorMessage(message)
 
 
 class ClickBox(pygame.sprite.Sprite):
