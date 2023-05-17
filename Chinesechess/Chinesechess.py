@@ -1,11 +1,26 @@
 import sys
 
+from configure import CONFIG
 import pygame
+import subprocess
+from time import sleep
+
 import socket
+
 # 要显示的窗口的宽、高
 WIDTH, HEIGHT = 750, 667
 
 MESSAGE_HEADER_SIZE = 4  # 消息头部的字节数
+
+Address = 'pikafish-avx2.exe'
+params1 = 'position fen rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RNBAKABNR w - - 0 1 moves'
+# 存放人的落子位置 人机对战
+f_old_row = 0
+f_old_col = 0
+f_new_row = 0
+f_new_col = 0
+
+flag = True
 
 class MessageType:
     JOIN = 1  # 加入游戏
@@ -495,9 +510,17 @@ class ChessBoard(object):
         """
         落子
         """
+        global f_old_col, f_new_col, f_old_row, f_new_row
         # 得到要移动的棋子的位置
         old_row, old_col = ClickBox.singleton.row, ClickBox.singleton.col
         print("旧位置：", old_row, old_col, "新位置：", new_row, new_col)
+
+        # 人机对战 落子位置
+        f_old_col = old_col;
+        f_old_row = old_row
+        f_new_col = new_col
+        f_new_row = new_row
+
         # 移动位置
         self.map[new_row][new_col] = self.map[old_row][old_col]
         # 修改棋子的属性
@@ -665,6 +688,8 @@ class Game(object):
         交换走棋方
         """
         self.player = "r" if self.player == "b" else "b"
+        global flag
+        flag = not flag
         return self.get_player()
 
     def show(self):
@@ -708,6 +733,7 @@ class Game(object):
 
 
 def main():
+    global params1
     # 初始化pygame
     pygame.init()
     # 创建用来显示画面的对象（理解为相框）
@@ -721,71 +747,221 @@ def main():
     # 创建计时器
     clock = pygame.time.Clock()
 
-    # 主循环
-    while True:
-        # 事件检测（例如点击了键盘、鼠标等）
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                pygame.quit()
-                sys.exit()  # 退出程序
+    if(CONFIG['mode'] == 1):
+        # 主循环
+        # 双人对战
+        while True:
+            # 事件检测（例如点击了键盘、鼠标等）
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    pygame.quit()
+                    sys.exit()  # 退出程序
 
-            # 如果游戏没有获胜方，则游戏继续，否则一直显示"获胜"
-            if not game.show_win:
-                # 检测是否点击了"可落子"对象
-                clicked_dot = Dot.click()
-                if clicked_dot:
-                    chess_board.move_chess(clicked_dot.row, clicked_dot.col)
-                    # 清理「点击对象」、「可落子位置对象」
-                    Dot.clean_last_postion()
-                    ClickBox.clean()
-                    # 判断此棋子走完之后，是否"将军"
-                    if chess_board.judge_attack_general(game.get_player()):
-                        # 检测对方是否可以挽救棋局，如果能挽救，就显示"将军"，否则显示"胜利"
-                        if chess_board.judge_win(game.get_player()):
-                            game.set_win(game.get_player())
-                        else:
-                            # 如果攻击到对方，则标记显示"将军"效果
-                            game.set_attack()
-                    # 落子之后，交换走棋方
-                    game.exchange()
-                # 检查是否点击了棋子
-                clicked_chess = Chess.click(game.get_player(), [chess for line in chess_board.map for chess in line if chess])
-                if clicked_chess:
-                    # 创建选中棋子对象
-                    ClickBox(screen, clicked_chess.row, clicked_chess.col, clicked_chess.team)
-                    # 清除之前的所有的可以落子对象
-                    Dot.clean_last_postion()
-                    # 真的点击了棋子，那么计算当前被点击的棋子可以走的位置
-                    all_position = chess_board.get_put_down_postion(clicked_chess)
-                    if all_position:
-                        # 清空上次可落子对象
+                # 如果游戏没有获胜方，则游戏继续，否则一直显示"获胜"
+                if not game.show_win:
+                    # 检测是否点击了"可落子"对象
+                    clicked_dot = Dot.click()
+                    if clicked_dot:
+                        chess_board.move_chess(clicked_dot.row, clicked_dot.col)
+                        # 清理「点击对象」、「可落子位置对象」
                         Dot.clean_last_postion()
-                        # 创建可落子对象
-                        for position in all_position:
-                            Dot(screen, position)
+                        ClickBox.clean()
+                        # 判断此棋子走完之后，是否"将军"
+                        if chess_board.judge_attack_general(game.get_player()):
+                            # 检测对方是否可以挽救棋局，如果能挽救，就显示"将军"，否则显示"胜利"
+                            if chess_board.judge_win(game.get_player()):
+                                game.set_win(game.get_player())
+                            else:
+                                # 如果攻击到对方，则标记显示"将军"效果
+                                game.set_attack()
+                        # 落子之后，交换走棋方
+                        game.exchange()
+                    # 检查是否点击了棋子
+                    clicked_chess = Chess.click(game.get_player(), [chess for line in chess_board.map for chess in line if chess])
+                    if clicked_chess:
+                        # 创建选中棋子对象
+                        ClickBox(screen, clicked_chess.row, clicked_chess.col, clicked_chess.team)
+                        # 清除之前的所有的可以落子对象
+                        Dot.clean_last_postion()
+                        # 真的点击了棋子，那么计算当前被点击的棋子可以走的位置
+                        all_position = chess_board.get_put_down_postion(clicked_chess)
+                        if all_position:
+                            # 清空上次可落子对象
+                            Dot.clean_last_postion()
+                            # 创建可落子对象
+                            for position in all_position:
+                                Dot(screen, position)
 
-        # 显示游戏背景
-        screen.blit(background_img, (0, 0))
-        screen.blit(background_img, (0, 270))
-        screen.blit(background_img, (0, 540))
+            # 显示游戏背景
+            screen.blit(background_img, (0, 0))
+            screen.blit(background_img, (0, 270))
+            screen.blit(background_img, (0, 540))
 
-        # 显示棋盘以及棋盘上的棋子
-        chess_board.show()
+            # 显示棋盘以及棋盘上的棋子
+            chess_board.show()
 
-        # 显示被点击的棋子
-        ClickBox.show()
+            # 显示被点击的棋子
+            ClickBox.show()
 
-        # 显示可落子对象
-        Dot.show()
+            # 显示可落子对象
+            Dot.show()
 
-        # 显示游戏相关信息
-        game.show()
+            # 显示游戏相关信息
+            game.show()
 
-        # 显示screen这个相框的内容（此时在这个相框中的内容像照片、文字等会显示出来）
-        pygame.display.update()
+            # 显示screen这个相框的内容（此时在这个相框中的内容像照片、文字等会显示出来）
+            pygame.display.update()
 
-        # FPS（每秒钟显示画面的次数）
-        clock.tick(60)  # 通过一定的延时，实现1秒钟能够循环60次
+            # FPS（每秒钟显示画面的次数）
+            clock.tick(60)  # 通过一定的延时，实现1秒钟能够循环60次
+    else:
+        # 人机对战模式
+        global flag
+
+        while True:
+            if(flag == True):
+                # 事件检测（例如点击了键盘、鼠标等）
+                for event in pygame.event.get():
+                    if event.type == pygame.QUIT:
+                        pygame.quit()
+                        sys.exit()  # 退出程序
+
+                    # 如果游戏没有获胜方，则游戏继续，否则一直显示"获胜"
+                    if not game.show_win:
+                        # 检测是否点击了"可落子"对象
+                        clicked_dot = Dot.click()
+
+                        if clicked_dot:
+                            chess_board.move_chess(clicked_dot.row, clicked_dot.col)
+                            # 清理「点击对象」、「可落子位置对象」
+                            Dot.clean_last_postion()
+                            ClickBox.clean()
+                            # 判断此棋子走完之后，是否"将军"
+                            if chess_board.judge_attack_general(game.get_player()):
+                                # 检测对方是否可以挽救棋局，如果能挽救，就显示"将军"，否则显示"胜利"
+                                if chess_board.judge_win(game.get_player()):
+                                    game.set_win(game.get_player())
+                                else:
+                                    # 如果攻击到对方，则标记显示"将军"效果
+                                    game.set_attack()
+                            # 落子之后，交换走棋方
+                            game.exchange()
+                        # 检查是否点击了棋子
+                        clicked_chess = Chess.click(game.get_player(),
+                                                    [chess for line in chess_board.map for chess in line if chess])
+                        if clicked_chess:
+                            # 创建选中棋子对象
+                            ClickBox(screen, clicked_chess.row, clicked_chess.col, clicked_chess.team)
+                            # 清除之前的所有的可以落子对象
+                            Dot.clean_last_postion()
+                            # 真的点击了棋子，那么计算当前被点击的棋子可以走的位置
+                            all_position = chess_board.get_put_down_postion(clicked_chess)
+                            if all_position:
+                                # 清空上次可落子对象
+                                Dot.clean_last_postion()
+                                # 创建可落子对象
+                                for position in all_position:
+                                    Dot(screen, position)
+
+
+            else:
+                params1 = params1 + ' ' + str(chr((f_old_col+97))) + str(9-f_old_row) + str(chr(f_new_col+97)) + str(9-f_new_row)
+                print(params1)
+
+                ret = subprocess.Popen(Address, stdout=subprocess.PIPE, stdin=subprocess.PIPE, shell=True, encoding="GBK")
+                # 输入参数
+                ret.stdin.write(params1 + "\n")
+                ret.stdin.write("d\n")
+                ret.stdin.write("go \n")
+                ret.stdin.flush()
+                sleep(4)
+
+                # 输出数据
+                ret.stdin.close()
+                out = ret.stdout.read()
+                ret.stdout.close()
+
+                # 最优解
+                Bestmove = out.find("bestmove")
+                print(out[Bestmove + 9:Bestmove + 13])
+                ascii_values = []
+                next_step = str(out[Bestmove + 9:Bestmove + 13])
+
+                params1 = params1 + ' ' + next_step
+                print(params1)
+
+                for character in next_step:
+                    ascii_values.append(ord(character))
+
+                ascii_values[0] = ascii_values[0] - 97
+                ascii_values[1] = 9 - (ascii_values[1] - 48)
+                ascii_values[2] = ascii_values[2] - 97
+                ascii_values[3] = 9 - (ascii_values[3] - 48)
+                print(ascii_values)
+
+                # 创建选中棋子对象
+                player = game.get_player()
+                ClickBox(screen, ascii_values[1], ascii_values[0], player)
+                # 清除之前的所有的可以落子对象
+                Dot.clean_last_postion()
+                # 真的点击了棋子，那么计算当前被点击的棋子可以走的位置
+
+
+                chess_board.move_chess(ascii_values[3], ascii_values[2])
+                Dot.clean_last_postion()
+                ClickBox.clean()
+                if chess_board.judge_attack_general(game.get_player()):
+                    # 检测对方是否可以挽救棋局，如果能挽救，就显示"将军"，否则显示"胜利"
+                    if chess_board.judge_win(game.get_player()):
+                        game.set_win(game.get_player())
+                    else:
+                        # 如果攻击到对方，则标记显示"将军"效果
+                        game.set_attack()
+                game.exchange()
+
+
+                """
+            # 检查是否点击了棋子
+            clicked_chess = Chess.click(game.get_player(),
+                                        [chess for line in chess_board.map for chess in line if chess])
+            if clicked_chess:
+                # 创建选中棋子对象
+                ClickBox(screen, clicked_chess.row, clicked_chess.col, clicked_chess.team)
+                # 清除之前的所有的可以落子对象
+                Dot.clean_last_postion()
+                # 真的点击了棋子，那么计算当前被点击的棋子可以走的位置
+                all_position = chess_board.get_put_down_postion(clicked_chess)
+                if all_position:
+                    # 清空上次可落子对象
+                    Dot.clean_last_postion()
+                    # 创建可落子对象
+                    for position in all_position:
+                        Dot(screen, position)
+                """
+
+
+            # 显示游戏背景
+            screen.blit(background_img, (0, 0))
+            screen.blit(background_img, (0, 270))
+            screen.blit(background_img, (0, 540))
+
+            # 显示棋盘以及棋盘上的棋子
+            chess_board.show()
+
+            # 显示被点击的棋子
+            ClickBox.show()
+
+            # 显示可落子对象
+            Dot.show()
+
+            # 显示游戏相关信息
+            game.show()
+
+            # 显示screen这个相框的内容（此时在这个相框中的内容像照片、文字等会显示出来）
+            pygame.display.update()
+
+            # FPS（每秒钟显示画面的次数）
+            clock.tick(60)  # 通过一定的延时，实现1秒钟能够循环60次
 
 
 if __name__ == '__main__':
