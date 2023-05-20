@@ -2,8 +2,7 @@ import sys
 
 from configure import CONFIG
 import pygame
-import subprocess
-from time import sleep
+from ai import GetData
 
 import socket
 
@@ -12,7 +11,6 @@ WIDTH, HEIGHT = 750, 667
 
 MESSAGE_HEADER_SIZE = 4  # 消息头部的字节数
 
-Address = 'pikafish-avx2.exe'
 params1 = 'position fen rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RNBAKABNR w - - 0 1 moves'
 # 存放人的落子位置 人机对战
 f_old_row = 0
@@ -867,37 +865,7 @@ def main():
             else:
                 params1 = params1 + ' ' + str(chr((f_old_col+97))) + str(9-f_old_row) + str(chr(f_new_col+97)) + str(9-f_new_row)
                 print(params1)
-
-                ret = subprocess.Popen(Address, stdout=subprocess.PIPE, stdin=subprocess.PIPE, shell=True, encoding="GBK")
-                # 输入参数
-                ret.stdin.write(params1 + "\n")
-                ret.stdin.write("d\n")
-                ret.stdin.write("go \n")
-                ret.stdin.flush()
-                sleep(4)
-
-                # 输出数据
-                ret.stdin.close()
-                out = ret.stdout.read()
-                ret.stdout.close()
-
-                # 最优解
-                Bestmove = out.find("bestmove")
-                print(out[Bestmove + 9:Bestmove + 13])
-                ascii_values = []
-                next_step = str(out[Bestmove + 9:Bestmove + 13])
-
-                params1 = params1 + ' ' + next_step
-                print(params1)
-
-                for character in next_step:
-                    ascii_values.append(ord(character))
-
-                ascii_values[0] = ascii_values[0] - 97
-                ascii_values[1] = 9 - (ascii_values[1] - 48)
-                ascii_values[2] = ascii_values[2] - 97
-                ascii_values[3] = 9 - (ascii_values[3] - 48)
-                print(ascii_values)
+                [ascii_values, params1] = GetData(params1)
 
                 # 创建选中棋子对象
                 player = game.get_player()
