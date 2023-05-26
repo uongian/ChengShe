@@ -16,13 +16,17 @@ def GetData(params1):
     ret.stdin.close()
     out = ret.stdout.read()
     ret.stdout.close()
-
+    # print(out)
+    stat = out.find("Fen")
+    stat1 = out.find('Key')
+    # print(stat1)
+    # print('\n'+out[stat + 5:stat1-1])
     # 最优解
     Bestmove = out.find("bestmove")
-    print(out[Bestmove + 9:Bestmove + 13])
+    # print(out[Bestmove + 9:Bestmove + 13])
     ascii_values = []
     next_step = str(out[Bestmove + 9:Bestmove + 13])
-
+    params1 = 'position fen ' + out[stat + 5:stat1-1] + ' moves'
     params1 = params1 + ' ' + next_step
     print(params1)
 
@@ -34,4 +38,4 @@ def GetData(params1):
     ascii_values[2] = ascii_values[2] - 97
     ascii_values[3] = 9 - (ascii_values[3] - 48)
     print(ascii_values)
-    return ascii_values,params1
+    return ascii_values, params1

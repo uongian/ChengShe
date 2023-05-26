@@ -864,7 +864,7 @@ def main():
 
             else:
                 params1 = params1 + ' ' + str(chr((f_old_col+97))) + str(9-f_old_row) + str(chr(f_new_col+97)) + str(9-f_new_row)
-                print(params1)
+                # print(params1)
                 [ascii_values, params1] = GetData(params1)
 
                 # 创建选中棋子对象
