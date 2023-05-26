@@ -2,7 +2,7 @@ import sys
 
 from configure import CONFIG
 import pygame
-from ai import GetData
+from ai import GetData, add_step, init_history
 
 import socket
 
@@ -504,7 +504,7 @@ class ChessBoard(object):
 
         return all_position
 
-    def move_chess(self, new_row, new_col):
+    def move_chess(self, new_row, new_col, path):
         """
         落子
         """
@@ -514,10 +514,14 @@ class ChessBoard(object):
         print("旧位置：", old_row, old_col, "新位置：", new_row, new_col)
 
         # 人机对战 落子位置
-        f_old_col = old_col;
+        f_old_col = old_col
         f_old_row = old_row
         f_new_col = new_col
         f_new_row = new_row
+
+        # 添加历史记录
+        step = str(old_col) + str(old_row) + str(new_col) + str(new_row)
+        add_step(path, step)
 
         # 移动位置
         self.map[new_row][new_col] = self.map[old_row][old_col]
@@ -732,6 +736,9 @@ class Game(object):
 
 def main():
     global params1
+
+    path = init_history(CONFIG['mode'])
+
     # 初始化pygame
     pygame.init()
     # 创建用来显示画面的对象（理解为相框）
@@ -760,7 +767,7 @@ def main():
                     # 检测是否点击了"可落子"对象
                     clicked_dot = Dot.click()
                     if clicked_dot:
-                        chess_board.move_chess(clicked_dot.row, clicked_dot.col)
+                        chess_board.move_chess(clicked_dot.row, clicked_dot.col, path)
                         # 清理「点击对象」、「可落子位置对象」
                         Dot.clean_last_postion()
                         ClickBox.clean()
@@ -830,7 +837,7 @@ def main():
                         clicked_dot = Dot.click()
 
                         if clicked_dot:
-                            chess_board.move_chess(clicked_dot.row, clicked_dot.col)
+                            chess_board.move_chess(clicked_dot.row, clicked_dot.col, path)
                             # 清理「点击对象」、「可落子位置对象」
                             Dot.clean_last_postion()
                             ClickBox.clean()
@@ -875,7 +882,7 @@ def main():
                 # 真的点击了棋子，那么计算当前被点击的棋子可以走的位置
 
 
-                chess_board.move_chess(ascii_values[3], ascii_values[2])
+                chess_board.move_chess(ascii_values[3], ascii_values[2], path)
                 Dot.clean_last_postion()
                 ClickBox.clean()
                 if chess_board.judge_attack_general(game.get_player()):

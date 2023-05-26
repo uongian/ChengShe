@@ -1,5 +1,6 @@
 import subprocess
-from time import sleep
+import os
+from time import sleep, localtime
 Address = 'pikafish-avx2.exe'
 
 def GetData(params1):
@@ -38,4 +39,51 @@ def GetData(params1):
     ascii_values[2] = ascii_values[2] - 97
     ascii_values[3] = 9 - (ascii_values[3] - 48)
     print(ascii_values)
+
     return ascii_values, params1
+
+def init_history(mode):
+    path = './/history'
+    folder = os.path.exists(path)
+
+    if not folder:  # 判断是否存在文件夹如果不存在则创建为文件夹
+        os.makedirs(path)  # makedirs 创建文件时如果路径不存在会创建这个路径
+
+    t = localtime()
+    path = './/history//' + str(t.tm_mon) + '_' + str(t.tm_mday) + '_' + str(t.tm_hour) + '_' + str(t.tm_min) + '.txt'
+    text = "time: " + str(t.tm_mon) + '/' + str(t.tm_mday) + ' ' + str(t.tm_hour) + '/' + str(t.tm_min) + '\n'
+    text = text + 'step: 0\n'
+    text = text + 'mode: ' + str(mode) + '\n'
+    file = open(path, 'w')
+    file.write(text)
+    file.close()
+    return path
+
+def add_step(path, step): # old_col old_row new_col new_row
+    file = open(path)
+    content = file.readlines()
+    file.close()
+    c=content[1][6:]
+    content[1] = "step: " + str(int(c)+1) + '\n'
+    content.append(step)
+
+    file = open(path, 'r+')
+    str_c = "".join(content)
+    str_c = str_c + '\n'
+    file.write(str_c)
+    file.close()
+    return 1
+
+def get_history():
+    return 1
+
+def main():
+    path = init_history(2)
+    add_step(path, 'abcd')
+    add_step(path, 'abcd')
+    add_step(path, 'abcd')
+    add_step(path, 'abcd')
+    return 1
+
+if __name__ == '__main__':
+    main()
