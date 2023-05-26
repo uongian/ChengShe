@@ -63,7 +63,7 @@ def add_step(path, step): # old_col old_row new_col new_row
     file = open(path)
     content = file.readlines()
     file.close()
-    c=content[1][6:]
+    c = content[1][6:]
     content[1] = "step: " + str(int(c)+1) + '\n'
     content.append(step)
 
@@ -72,18 +72,27 @@ def add_step(path, step): # old_col old_row new_col new_row
     str_c = str_c + '\n'
     file.write(str_c)
     file.close()
-    return 1
+    return 0
 
-def get_history():
-    return 1
-
+def get_history(path,step_num):
+    file = open(path)
+    content = file.readlines()
+    file.close()
+    step = content[step_num+2]
+    return step
+def get_step_num(path):
+    file = open(path)
+    content = file.readlines()
+    file.close()
+    num = int(content[1][6:])
+    return num
 def main():
     path = init_history(2)
     add_step(path, 'abcd')
     add_step(path, 'abcd')
     add_step(path, 'abcd')
     add_step(path, 'abcd')
-    return 1
+    return 0
 
 if __name__ == '__main__':
     main()
