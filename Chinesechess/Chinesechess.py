@@ -969,10 +969,6 @@ def main():
                 n_step = n_step + 1
 
             i = (i+1)%(s_time*60*2)
-            # 显示游戏背景
-            screen.blit(background_img, (0, 0))
-            screen.blit(background_img, (0, 270))
-            screen.blit(background_img, (0, 540))
 
             # 显示棋盘以及棋盘上的棋子
             chess_board.show()
