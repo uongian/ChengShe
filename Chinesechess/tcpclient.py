@@ -1,49 +1,87 @@
 import socket
-from message import *
+import pygame
 
-# 连接服务器
-host = '127.0.0.1'
-port = 8888
-sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-sock.connect((host, port))
+# 服务端的IP地址和端口号
+HOST = '127.0.0.1'  # 这里假设服务端运行在本机上
+PORT = 6666
 
-# 发送玩家姓名
-player_name = input('请输入您的姓名：')
-name_message = NameMessage(player_name)
-sock.send(name_message.pack())
+# 初始化Pygame
+pygame.init()
 
-# 接收玩家颜色和游戏状态
+# 设置屏幕大小和标题
+screen_width, screen_height = 750, 667
+screen = pygame.display.set_mode((screen_width, screen_height))
+pygame.display.set_caption("中国象棋")
+
+# 加载棋盘图片
+board_image = pygame.image.load("images/bg.png")
+
+# 加载棋子图片
+chess_images = {
+    "r_c": pygame.image.load("images/r_c.png"),
+    "r_m": pygame.image.load("images/r_m.png"),
+    "r_x": pygame.image.load("images/r_x.png"),
+    "r_s": pygame.image.load("images/r_s.png"),
+    "r_j": pygame.image.load("images/r_j.png"),
+    "r_p": pygame.image.load("images/r_p.png"),
+    "b_c": pygame.image.load("images/r_p.png"),
+    "b_m": pygame.image.load("images/b_m.png"),
+    "b_x": pygame.image.load("images/b_x.png"),
+    "b_s": pygame.image.load("images/b_s.png"),
+    "b_j": pygame.image.load("images/b_j.png"),
+    "b_p": pygame.image.load("images/b_p.png"),
+    "b_z": pygame.image.load("images/b_z.png"),
+    "r_z": pygame.image.load("images/r_z.png"),
+    "": None,  # 空格子对应的棋子图片为None
+}
+
+# 字体设置
+font = pygame.font.SysFont("simhei", 20)
+
+# 创建一个socket对象
+client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
+# 建立连接
+client_socket.connect((HOST, PORT))
+
+# 发送消息
+client_socket.sendall(b'Hello, World!')
+
+# 接收消息
+data = client_socket.recv(1024)
+
+# 解析接收到的数据
+board = eval(data.decode())
+print(board)
+
+# 发送消息
+client_socket.sendall(b'Hello, World!')
+
+# 关闭连接
+client_socket.close()
+
+# 画棋盘
+screen.blit(board_image, (0, 0))
+
+# 画棋子
+for i in range(10):
+    for j in range(9):
+        piece = board[i][j]
+        if piece != "":
+            piece_image = piece_images[piece]
+            piece_rect = piece_image.get_rect()
+            piece_rect.topleft = (60 + j * 57 - piece_rect.width // 2, 60 + i * 57 - piece_rect.height // 2)
+            screen.blit(piece_image, piece_rect)
+
+# 刷新屏幕
+pygame.display.flip()
+
+# 游戏循环
 while True:
-    message_type, message_body = receive_message(sock)
-    if message_type == MessageType.START:
-        start_message = StartMessage.unpack(message_body)
-        print(f'您执{start_message.color}方')
-        break
-    elif message_type == MessageType.ERROR:
-        error_message = ErrorMessage.unpack(message_body)
-        print(f'错误：{error_message.message}')
+    pygame.time.delay(100)  # 添加延迟，降低CPU使用率
 
-# 开始游戏循环
-while True:
-    # 等待对手落子
-    message_type, message_body = receive_message(sock)
-    if message_type == MessageType.MOVE:
-        move_message = MoveMessage.unpack(message_body)
-        print(f'{move_message.src} -> {move_message.dest}')
-    elif message_type == MessageType.END:
-        end_message = EndMessage.unpack(message_body)
-        print(f'游戏结束，胜利者是{end_message.winner}')
-        break
-    elif message_type == MessageType.ERROR:
-        error_message = ErrorMessage.unpack(message_body)
-        print(f'错误：{error_message.message}')
-
-    # 玩家落子
-    src = int(input('请输入起始位置：'))
-    dest = int(input('请输入目标位置：'))
-    move_message = MoveMessage(src, dest)
-    sock.send(move_message.pack())
-
-# 关闭网络连接
-sock.close()
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            pygame.quit()
+            exit()  # 点击关闭按钮退出游戏
 
