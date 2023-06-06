@@ -2,7 +2,6 @@ import subprocess
 import os
 from time import sleep, localtime
 Address = 'pikafish-avx2.exe'
-
 def GetData(params1):
 
     ret = subprocess.Popen(Address, stdout=subprocess.PIPE, stdin=subprocess.PIPE, shell=True, encoding="GBK")
